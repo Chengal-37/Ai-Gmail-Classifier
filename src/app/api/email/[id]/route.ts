@@ -1,5 +1,5 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 // Helper to decode base64url which is used by Gmail API
 function base64UrlDecode(input: string) {
@@ -53,7 +53,7 @@ function getBody(payload: any): string {
 }
 
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
     const { accessToken } = await req.json();
     const messageId = params.id;
