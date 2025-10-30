@@ -1,103 +1,185 @@
-import Image from "next/image";
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSession, signIn, signOut } from 'next-auth/react';
+import EmailList from '@/components/EmailList';
+import { FiLogOut, FiMail, FiLoader, FiKey } from 'react-icons/fi';
+import Image from 'next/image';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { data: session, status } = useSession();
+  
+  // State for the sign-in form
+  const [apiKey, setApiKey] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // State for the authenticated view
+  const [userApiKey, setUserApiKey] = useState<string | null>(null);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [newApiKey, setNewApiKey] = useState('');
+
+  const isLoading = status === 'loading';
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      const storedKey = localStorage.getItem('openai_api_key');
+      if (storedKey) {
+        setUserApiKey(storedKey);
+        setNewApiKey(storedKey);
+      }
+    }
+  }, [status]);
+
+  const handleSignIn = () => {
+    if (!apiKey.trim()) {
+      setError('Please enter your OpenAI API key.');
+      return;
+    }
+    localStorage.setItem('openai_api_key', apiKey);
+    signIn('google');
+  };
+
+  const handleUpdateApiKey = () => {
+    if (!newApiKey.trim()) {
+      // Basic validation
+      return;
+    }
+    localStorage.setItem('openai_api_key', newApiKey);
+    setUserApiKey(newApiKey);
+    setIsApiKeyModalOpen(false);
+  };
+
+  if (isLoading) {
+    return (
+      <main className="min-vh-100 d-flex align-items-center justify-content-center text-light bg-animated-gradient">
+        <div className="text-center">
+          <FiLoader className="spinner-border text-primary" style={{ width: '3rem', height: '3rem' }} />
+          <p className="mt-3 fs-5">Initializing session...</p>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+    );
+  }
+
+  if (status !== 'authenticated') {
+    return (
+      <main className="min-vh-100 d-flex align-items-center justify-content-center p-4 bg-animated-gradient">
+        <div className="col-xl-4 col-lg-6 col-md-8 mx-auto text-center bg-light bg-opacity-10 p-5 rounded-4 shadow-lg" style={{ backdropFilter: 'blur(12px)' }}>
+          <div className="mb-4">
+            <FiMail className="text-primary" style={{ fontSize: '6rem' }} />
+          </div>
+          <h1 className="fw-bolder mb-3 text-white">AI Email Classifier</h1>
+          <p className="text-white-50 mb-4">
+            Sign in with Google and provide your OpenAI key to let AI classify your emails.
+          </p>
+
+          <div className="mb-4 position-relative">
+            <FiKey className="position-absolute top-50 translate-middle-y text-white-50" style={{ left: '1rem', zIndex: 2 }} />
+            <input
+              type="password"
+              className="form-control form-control-lg bg-dark text-white border-secondary ps-5"
+              placeholder="Enter your OpenAI API key"
+              value={apiKey}
+              onChange={(e) => {
+                setApiKey(e.target.value);
+                if (error) setError(null);
+              }}
+            />
+            {error && <div className="invalid-feedback d-block text-start mt-2">{error}</div>}
+          </div>
+
+          <button
+            onClick={handleSignIn}
+            className="btn btn-light w-100 d-flex align-items-center justify-content-center gap-2 shadow-lg"
+          >
+            <Image src="/google-logo.svg" alt="Google logo" width={22} height={22} />
+            <span className="fw-bold">Sign in with Google</span>
+          </button>
+
+          <p className="text-white-50 mt-4" style={{ fontSize: '0.8rem' }}>
+            Your API key is stored locally and securely. We respect your privacy.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-vh-100 p-lg-4 bg-animated-gradient">
+      <div className="container-fluid">
+        <header className="d-flex justify-content-between align-items-center mb-5 p-3 rounded-3 bg-light bg-opacity-10 shadow-sm" style={{ backdropFilter: 'blur(10px)' }}>
+          <div className="d-flex align-items-center gap-3">
+            {session.user?.image && (
+              <Image src={session.user.image} alt="User profile" width={45} height={45} className="rounded-circle border border-primary border-2 shadow-sm" />
+            )}
+            <div>
+              <span className="fw-semibold text-white d-none d-md-inline">{session.user?.name}</span>
+              <p className="text-white-50 mb-0 d-none d-md-block" style={{ fontSize: '0.8rem' }}>{session.user?.email}</p>
+            </div>
+          </div>
+          <div className="d-flex align-items-center gap-2">
+             <button
+                onClick={() => setIsApiKeyModalOpen(true)}
+                className="btn btn-outline-primary d-flex align-items-center gap-2 shadow-sm"
+                title="Update API Key"
+              >
+                <FiKey />
+                <span className="d-none d-sm-inline">Update Key</span>
+            </button>
+            <button
+                onClick={() => signOut({ callbackUrl: '/' })}
+                className="btn btn-outline-danger d-flex align-items-center gap-2 shadow-sm"
+            >
+                <FiLogOut />
+                <span className="d-none d-sm-inline">Sign out</span>
+            </button>
+          </div>
+        </header>
+
+        <EmailList session={session} apiKey={userApiKey} />
+      </div>
+
+      {isApiKeyModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1050,
+          backdropFilter: 'blur(5px)',
+        }}>
+          <div className="modal-dialog" style={{ minWidth: '500px' }}>
+            <div className="modal-content bg-dark text-white shadow-lg border-secondary rounded-4">
+              <div className="modal-header border-0 px-4 pt-4">
+                <h5 className="modal-title d-flex align-items-center gap-2"><FiKey/> Update OpenAI API Key</h5>
+                <button type="button" className="btn-close btn-close-white" onClick={() => setIsApiKeyModalOpen(false)}></button>
+              </div>
+              <div className="modal-body p-4">
+                <p className='text-white-50 mb-4'>Enter your new OpenAI API key. It will be stored securely in your browser's local storage.</p>
+                <div className="position-relative">
+                  <FiKey className="position-absolute top-50 translate-middle-y text-white-50" style={{ left: '1rem', zIndex: 2 }} />
+                  <input
+                    type="password"
+                    className="form-control form-control-lg bg-dark text-white border-secondary ps-5"
+                    placeholder="sk-..."
+                    value={newApiKey}
+                    onChange={(e) => setNewApiKey(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer border-0 px-4 pb-4">
+                <button type="button" className="btn btn-secondary" onClick={() => setIsApiKeyModalOpen(false)}>Cancel</button>
+                <button type="button" className="btn btn-primary" onClick={handleUpdateApiKey}>Save Changes</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
   );
 }
